@@ -30,14 +30,38 @@ def load_data():
 
 # 选择初始均值向量
 def initial_point(data, k):
-    means =
-
+    means_list = []
+    mean_rand = random.sample(data, 1)[0]  # 随机选择一个点作为第一个中心点
+    means_list.append(mean_rand)
+    for i in range(k-1):                # 找剩余的k-1个中心点
+        ret = []                        # 非中心点的列表
+        for j in data:
+            if j not in means_list:
+                ret.append(j)
+        max_distance = float('-inf')    # 非中心点到中心点的最短距离的最大值
+        max_point = None
+        for point in ret:
+            # print point
+            distance = float('inf')     # 该点到中心点的最短距离
+            # 计算该点到中心点的最短距离
+            for mean in means_list:
+                # print mean
+                temp = np.sqrt(np.square(point[0] - mean[0]) + np.square(point[1] - mean[1]))
+                if temp < distance:
+                    distance = temp
+            # 找每个非中心点到中心点最短距离的最大值
+            if max_distance < distance:
+                max_distance = distance
+                max_point = point
+        means_list.append(max_point)
+        # print max_point
+    return means_list
 
 
 # k-means算法
 def k_means(data, k):
-    means = random.sample(data, k)       # 算法开始时随机选择k个样本作为初始均值向量
-    # means = initial_point(data, k)
+    # means = random.sample(data, k)       # 算法开始时随机选择k个样本作为初始均值向量
+    means = initial_point(data, k)
     label = []                           # 标签集合
     for n in range(len(data)):
         label.append(0)
@@ -77,8 +101,8 @@ def k_means(data, k):
     return label, data_divide
 
 
-_k = 3
-data_set = generate_data(3)          # 二维数组
+_k = 6                               # k_means算法中的k值
+data_set = generate_data(6)          # 生成m个高斯分布的数据
 label_set, divide_set = k_means(data_set, _k)
 for m in range(_k):
     y = divide_set[m]
