@@ -133,8 +133,10 @@ def gmm(data, k, means_in):
         alpha.append(1.0 / k)
         covs.append([[1, 0], [0, 1]])
     pre_mle = float(0)
+    count = 0
     while True:
         # 计算每个x各类的后验概率
+        count += 1
         gamma = []
         for i in range(len(data)):
             tmp = []
@@ -148,8 +150,10 @@ def gmm(data, k, means_in):
             gamma.append(tmp)
         mle = lln(gamma, alpha, k)
         print mle
-        # 如果两次迭代似然函数基本不变，则停止迭代
+        # 如果两次迭代似然函数基本不变或者迭代足够多的次数，则停止迭代
         if np.abs(mle - pre_mle) < 1e-4:
+            break
+        if count > 200:
             break
         pre_mle = mle
         # 计算新的混合系数、均值和方差
