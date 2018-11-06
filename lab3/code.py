@@ -23,7 +23,7 @@ def load_data():
     x_set = []
     fp = open('data1.txt')
     for line in fp.readlines():
-        line_array = line.strip().split()
+        line_array = line.strip().split(',')
         x_set.append([float(line_array[0]), float(line_array[1])])
     return x_set
 
@@ -191,7 +191,8 @@ def gmm(data, k, means_in):
 
 
 _k = 6                               # k_means算法中的k值
-data_set = generate_data(6)          # 生成m个高斯分布的数据
+data_set = generate_data(6)        # 生成m个高斯分布的数据
+# data_set = load_data()
 means_by_kmeans, divide_set_by_kmeans = k_means(data_set, _k)
 divide_set_by_gmm = gmm(data_set, _k, means_by_kmeans)
 
