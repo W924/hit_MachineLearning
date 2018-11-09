@@ -1,7 +1,8 @@
-# coding:utf-8
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import os
+import struct
 
 
 def generate_data():
@@ -58,11 +59,10 @@ def pca(data):
     eig_pairs = [(np.abs(eig_val[i]), eig_vec[:, i].T.tolist()[0]) for i in range(len(eig_val))]
     # 按特征值的绝对值降序排列
     eig_pairs.sort(reverse=True)
-    # print eig_pairs
-    eig_val_list = sorted(eig_val.tolist(), reverse=True)
-    # 计算主成分的个数
-    # d = 1
-    d = compute_number_of_pc(eig_val_list)
+    # 计算或设置主成分的个数
+    d = 40
+    # eig_val_list = sorted(eig_val.tolist(), reverse=True)
+    # d = compute_number_of_pc(eig_val_list)
     # 选择主成分
     principal_component = []                # d x n
     for i in range(d):
@@ -71,13 +71,27 @@ def pca(data):
     return new_data_matrix.tolist(), principal_component
 
 
+# 加载Mnist
+def load_mnist(kind='train'):
+    labels_path = os.path.join('%s-labels.idx1-ubyte' % kind)
+    images_path = os.path.join('%s-images.idx3-ubyte' % kind)
+    with open(labels_path, 'rb') as lbpath:
+        magic, n = struct.unpack('>II', lbpath.read(8))  # 大端无符号数
+        labels = np.fromfile(lbpath, dtype=np.uint8)
+    with open(images_path, 'rb') as imgpath:
+        magic, num, rows, cols = struct.unpack('>IIII', imgpath.read(16))
+        images = np.fromfile(imgpath, dtype=np.uint8).reshape(len(labels), 784)
+    return images, labels
+
+
+# 测试1，生成三维数据进行测试
 def test_with_data_generated():
     data_set = generate_data()
     new_data_set, pc = pca(data_set)
-    print "principal component:"
-    print pc
-    print "data after dimension decline:"
-    print new_data_set
+    print("principal component:")
+    print(pc)
+    print("data after dimension decline:")
+    print(new_data_set)
 
     plt.figure(figsize=(10, 10))
     ax = plt.subplot(221, projection='3d')
@@ -103,4 +117,35 @@ def test_with_data_generated():
     plt.show()
 
 
-test_with_data_generated()
+# 测试2，mnist手写体进行测试
+def test_with_mnist():
+    data_set, label_set = load_mnist()      # numpy.ndarray
+    fig, ax = plt.subplots(nrows=2, ncols=5)
+    # 将numpy.array类型转为list
+    test_data_set = []
+    for i in range(len(data_set)):
+        test_data_set.append(data_set[i].tolist())
+
+    ax = ax.flatten()
+    for i in range(10):
+        img = data_set[i].reshape(28, 28)
+        ax[i].imshow(img, cmap='Greys', interpolation='nearest')
+    plt.tight_layout()
+    plt.show()
+
+    new_data_set, principle_component = pca(test_data_set)      # 60000 x 64    64 x 784
+
+    new_data_ascend = np.mat(new_data_set) * principle_component
+    new_data_set = new_data_ascend.tolist()
+    fig, ax = plt.subplots(nrows=2, ncols=5)
+    ax = ax.flatten()
+    for i in range(10):
+        img = np.array(new_data_set[i]).reshape(28, 28)
+        ax[i].imshow(img, cmap='Greys', interpolation='nearest')
+    plt.tight_layout()
+    print("d =", len(principle_component))
+    plt.show()
+
+
+# test_with_data_generated()
+test_with_mnist()
