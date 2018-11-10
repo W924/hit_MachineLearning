@@ -37,7 +37,7 @@ def compute_number_of_pc(val_list):
             return i + 1
 
 
-def pca(data):
+def pca(data, d):
     n = len(data[0])        # 数据的维度
     # 计算各维的均值
     means = []
@@ -60,7 +60,7 @@ def pca(data):
     # 按特征值的绝对值降序排列
     eig_pairs.sort(reverse=True)
     # 计算或设置主成分的个数
-    d = 40
+    # d = 64
     # eig_val_list = sorted(eig_val.tolist(), reverse=True)
     # d = compute_number_of_pc(eig_val_list)
     # 选择主成分
@@ -68,7 +68,7 @@ def pca(data):
     for i in range(d):
         principal_component.append(eig_pairs[i][1])
     new_data_matrix = data_matrix * np.mat(principal_component).T   # m x d
-    return new_data_matrix.tolist(), principal_component
+    return new_data_matrix.tolist(), principal_component, means
 
 
 # 加载Mnist
@@ -84,12 +84,26 @@ def load_mnist(kind='train'):
     return images, labels
 
 
+# 计算信噪比
+def compute_snr(data, data_descent):
+    n = len(data)
+    s = float(0)
+    r = float(0)
+    for i in range(n):
+        s += np.square(data[i])
+        r += np.square(data[i] - data_descent[i])
+    return 10 * np.log10(s / r)
+
+
 # 测试1，生成三维数据进行测试
 def test_with_data_generated():
     data_set = generate_data()
-    new_data_set, pc = pca(data_set)
+    new_data_set, principle_component, means = pca(data_set, 2)
+
+    new_data_ascend = np.mat(new_data_set) * principle_component + np.tile(np.mat(means), (len(new_data_set), 1))
+    new_data_set = new_data_ascend.tolist()
     print("principal component:")
-    print(pc)
+    print(principle_component)
     print("data after dimension decline:")
     print(new_data_set)
 
@@ -106,7 +120,8 @@ def test_with_data_generated():
     ax = plt.subplot(222, projection='3d')
     new_x1_set = [m[0] for m in new_data_set]
     new_x2_set = [m[1] for m in new_data_set]
-    ax.scatter(new_x1_set, new_x2_set, marker='o')
+    new_x3_set = [m[2] for m in new_data_set]
+    ax.scatter(new_x1_set, new_x2_set, new_x3_set, marker='o')
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
@@ -133,10 +148,10 @@ def test_with_mnist():
     plt.tight_layout()
     plt.show()
 
-    new_data_set, principle_component = pca(test_data_set)      # 60000 x 64    64 x 784
+    new_data_set, principle_component, means = pca(test_data_set, 64)      # 60000 x 64    64 x 784
 
-    new_data_ascend = np.mat(new_data_set) * principle_component
-    new_data_set = new_data_ascend.tolist()
+    new_data_ascend = np.mat(new_data_set) * principle_component + np.tile(np.mat(means), (len(new_data_set), 1))
+    new_data_set = new_data_ascend.tolist()     # 60000 x 784
     fig, ax = plt.subplots(nrows=2, ncols=5)
     ax = ax.flatten()
     for i in range(10):
@@ -144,8 +159,9 @@ def test_with_mnist():
         ax[i].imshow(img, cmap='Greys', interpolation='nearest')
     plt.tight_layout()
     print("d =", len(principle_component))
+    print("SNR =", compute_snr(test_data_set[0], new_data_set[0]))
     plt.show()
 
 
-# test_with_data_generated()
+test_with_data_generated()
 test_with_mnist()
