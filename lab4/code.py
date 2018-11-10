@@ -7,24 +7,30 @@ import struct
 
 def generate_data():
     data = []
-    mean = [20, 40, 30]
-    cov = [[5, 0, 0], [0, 5, 0], [0, 0, 0.1]]
-    x1, x2, x3 = np.random.multivariate_normal(mean, cov, np.random.randint(60, 80)).T
+    mean1 = [10, 10, 10]
+    cov1 = [[10, 0, 0], [0, 1, 0], [0, 0, 10]]
+    mean2 = [20, 20, 20]
+    cov2 = [[10, 0, 0], [0, 1, 0], [0, 0, 10]]
+    x1, x2, x3 = np.random.multivariate_normal(mean1, cov1, 40).T
+    for i in range(len(x1)):
+        data.append([x1[i], x2[i], x3[i]])
+    x1, x2, x3 = np.random.multivariate_normal(mean2, cov2, 40).T
     for i in range(len(x1)):
         data.append([x1[i], x2[i], x3[i]])
     return data
 
 
-def load_data():
-    x_set = []
-    fp = open('data.txt')
-    for line in fp.readlines():
-        line_array = line.strip().split()
-        tmp = []
-        for i in range(len(line_array)):
-            tmp.append(float(line_array[i]))
-        x_set.append(tmp)
-    return x_set
+# 加载Mnist
+def load_mnist(kind='train'):
+    labels_path = os.path.join('%s-labels.idx1-ubyte' % kind)
+    images_path = os.path.join('%s-images.idx3-ubyte' % kind)
+    with open(labels_path, 'rb') as lbpath:
+        magic, n = struct.unpack('>II', lbpath.read(8))  # 大端无符号数
+        labels = np.fromfile(lbpath, dtype=np.uint8)
+    with open(images_path, 'rb') as imgpath:
+        magic, num, rows, cols = struct.unpack('>IIII', imgpath.read(16))
+        images = np.fromfile(imgpath, dtype=np.uint8).reshape(len(labels), 784)
+    return images, labels
 
 
 # 计算主成分的个数
@@ -71,19 +77,6 @@ def pca(data, d):
     return new_data_matrix.tolist(), principal_component, means
 
 
-# 加载Mnist
-def load_mnist(kind='train'):
-    labels_path = os.path.join('%s-labels.idx1-ubyte' % kind)
-    images_path = os.path.join('%s-images.idx3-ubyte' % kind)
-    with open(labels_path, 'rb') as lbpath:
-        magic, n = struct.unpack('>II', lbpath.read(8))  # 大端无符号数
-        labels = np.fromfile(lbpath, dtype=np.uint8)
-    with open(images_path, 'rb') as imgpath:
-        magic, num, rows, cols = struct.unpack('>IIII', imgpath.read(16))
-        images = np.fromfile(imgpath, dtype=np.uint8).reshape(len(labels), 784)
-    return images, labels
-
-
 # 计算信噪比
 def compute_snr(data, data_descent):
     n = len(data)
@@ -100,34 +93,43 @@ def test_with_data_generated():
     data_set = generate_data()
     new_data_set, principle_component, means = pca(data_set, 2)
 
+    plt.figure(figsize=(10, 10))
+    plt.subplot(223)
+    new_x1_set = [m[0] for m in new_data_set[:40]]
+    new_x2_set = [m[1] for m in new_data_set[:40]]
+    plt.plot(new_x1_set, new_x2_set, marker='.', linestyle='')
+    new_x1_set = [m[0] for m in new_data_set[40:]]
+    new_x2_set = [m[1] for m in new_data_set[40:]]
+    plt.plot(new_x1_set, new_x2_set, marker='.', linestyle='')
+
     new_data_ascend = np.mat(new_data_set) * principle_component + np.tile(np.mat(means), (len(new_data_set), 1))
     new_data_set = new_data_ascend.tolist()
-    print("principal component:")
-    print(principle_component)
-    print("data after dimension decline:")
-    print(new_data_set)
 
-    plt.figure(figsize=(10, 10))
     ax = plt.subplot(221, projection='3d')
-    x1_set = [m[0] for m in data_set]
-    x2_set = [m[1] for m in data_set]
-    x3_set = [m[2] for m in data_set]
+    x1_set = [m[0] for m in data_set[:40]]
+    x2_set = [m[1] for m in data_set[:40]]
+    x3_set = [m[2] for m in data_set[:40]]
+    ax.scatter(x1_set, x2_set, x3_set, marker='o')
+    x1_set = [m[0] for m in data_set[40:]]
+    x2_set = [m[1] for m in data_set[40:]]
+    x3_set = [m[2] for m in data_set[40:]]
     ax.scatter(x1_set, x2_set, x3_set, marker='o')
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
 
     ax = plt.subplot(222, projection='3d')
-    new_x1_set = [m[0] for m in new_data_set]
-    new_x2_set = [m[1] for m in new_data_set]
-    new_x3_set = [m[2] for m in new_data_set]
+    new_x1_set = [m[0] for m in new_data_set[:40]]
+    new_x2_set = [m[1] for m in new_data_set[:40]]
+    new_x3_set = [m[2] for m in new_data_set[:40]]
+    ax.scatter(new_x1_set, new_x2_set, new_x3_set, marker='o')
+    new_x1_set = [m[0] for m in new_data_set[40:]]
+    new_x2_set = [m[1] for m in new_data_set[40:]]
+    new_x3_set = [m[2] for m in new_data_set[40:]]
     ax.scatter(new_x1_set, new_x2_set, new_x3_set, marker='o')
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
-
-    plt.subplot(223)
-    plt.plot(new_x1_set, new_x2_set, marker='.', linestyle='')
 
     plt.show()
 
